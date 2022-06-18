@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
@@ -28,7 +27,6 @@ class MyApp extends StatelessWidget {
 class MyHomePage extends StatefulWidget {
   const MyHomePage({Key? key, required this.title}) : super(key: key);
 
-
   final String title;
 
   @override
@@ -37,117 +35,108 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   File? image;
-  String  result='';
+  String result = '';
   File? _video;
-  Uint8List webImage=Uint8List(8);
-   VideoPlayerController?  controller;
+  VideoPlayerController? controller;
   late ImageLabeler imageLabeler;
+
   void initState() {
     // TODO: implement initState
     super.initState();
-   imageLabeler =GoogleMlKit.vision.imageLabeler();
+    imageLabeler = GoogleMlKit.vision.imageLabeler();
   }
-Future<void> pickvideo(ImageSource source) async {
-   XFile? video = await ImagePicker().pickVideo(source: source);
+
+  Future<void> pickvideo(ImageSource source) async {
+    XFile? video = await ImagePicker().pickVideo(source: source);
     //if (video==null) return;
     _video = File(video!.path);
     controller = VideoPlayerController.file(_video!)
-    ..initialize().then((_) {setState((){
-    });
-    controller!.play();
-    });
-  }//does not work on web
+      ..initialize().then((_) {
+        setState(() {});
+        controller!.play();
+      });
+  }
 
-  
-  Future  pickImage(ImageSource source) async {
-
-   XFile? image=await ImagePicker().pickImage(source:source);
-    if (image==null) return;
-    final imageTem= await image.readAsBytes();
-    setState((){
-      webImage=imageTem;
-    });
+  Future pickImage(ImageSource source) async {
+    final image = await ImagePicker().pickImage(source: source);
+    if (image == null) return;
+    final imageTem = File(image.path);
+    setState(() => this.image = imageTem);
     imagelabelling();
   }
- imagelabelling()  async
- {
-    final inputImage=InputImage.fromFile(image!);
-    final List<ImageLabel> labels=await imageLabeler.processImage(inputImage);
-    result="";
-    for(ImageLabel label in labels ){
-      final String text =label.label;
-      final int index =label.index;
-      final double confidence =label.confidence;
+
+  imagelabelling() async {
+    final inputImage = InputImage.fromFile(image!);
+    final List<ImageLabel> labels = await imageLabeler.processImage(inputImage);
+    result = "";
+    for (ImageLabel label in labels) {
+      final String text = label.label;
+      final int index = label.index;
+      final double confidence = label.confidence;
       setState(() {
-        result+=text+"  "+confidence.toStringAsFixed(2)+"\n";
+        result += text + "  " + confidence.toStringAsFixed(2) + "\n";
       });
-
     }
-
-  }
-  @override
-  void dispose() {
-    // TODO: implement dispose
-    super.dispose();
-    imageLabeler.close();
   }
 
-
+  // @override
+  // void dispose() {
+  //   // TODO: implement dispose
+  //   super.dispose();
+  //   imageLabeler.close();
+  // }
 
   @override
-
   Widget build(BuildContext context) {
-
     return Scaffold(
       appBar: AppBar(
         // Here we take the value from the MyHomePage object that was created by
         // the App.build method, and use it to set our appbar title.
         title: Text(widget.title),
       ),
-      body: Container(
+      body: SingleChildScrollView(
         child: Column(
-
-
           //mainAxisAlignment: MainAxisAlignment.center,
-          children:<Widget> [
-
-            SingleChildScrollView(
-              child: Container(
-                // height: 300,
-                // width: 300,
-                child:Image.memory(webImage,fit:BoxFit.fill ,)
-              ),
-            ),
-
-            ElevatedButton.icon(onPressed: () => pickImage(ImageSource.gallery), icon: Icon(Icons.image_outlined), label: Text('Gallery')),
-
+          children: <Widget>[
+            image != null
+                ? Image.file(
+                    image!,
+                    height: 300,
+                    width: 300,
+                  )
+                : ElevatedButton.icon(
+                    onPressed: () => pickImage(ImageSource.camera),
+                    icon: Icon(Icons.camera_alt_outlined),
+                    label: Text('Click a photo')),
+            ElevatedButton.icon(
+                onPressed: () => pickImage(ImageSource.gallery),
+                icon: Icon(Icons.image_outlined),
+                label: Text('Gallery')),
             _video != null
                 ? AspectRatio(
-              aspectRatio: 16.0/9.0,
-              child: controller!.value.isInitialized
-                  ? VideoPlayer(controller!)
-                  :Container(),
-            )
-                :AspectRatio(aspectRatio: 16.0/9.0,
-              child:Container(
-                child: Text(
-                    'pick video'
-                ),
-
-              ),),
-            ElevatedButton(onPressed: ()=> pickvideo(ImageSource.gallery), child: Text('select video')),
+                    aspectRatio: 16.0 / 9.0,
+                    child: controller!.value.isInitialized
+                        ? VideoPlayer(controller!)
+                        : Container(),
+                  )
+                : AspectRatio(
+                    aspectRatio: 16.0 / 9.0,
+                    child: Container(
+                      child: Text('pick video'),
+                    ),
+                  ),
+            ElevatedButton(
+              onPressed: () => pickvideo(ImageSource.gallery),
+              child: Text('select video'),
+            ),
             Container(
-              width: 300,
-              height: 300,
-              child:Text(
+              child: Text(
                 '$result',
               ),
             )
-
           ],
         ),
       ),
-
     );
   }
 }
